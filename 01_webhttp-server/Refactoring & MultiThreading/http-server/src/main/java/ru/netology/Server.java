@@ -27,12 +27,12 @@ public class Server {
     private final List<String> validPaths = new ArrayList<>(List.of("/index.html", "/spring.svg", "/spring.png",
             "/resources.html", "/styles.css", "/app.js", "/links.html", "/forms.html",
             "/classic.html", "/events.html", "/events.js"));
+
     private final int PORT = 9999;
     private final ExecutorService threadPool = Executors.newFixedThreadPool(64);
 
     public void start() {
         System.out.println("server started");
-
         try(var serverSocket = new ServerSocket(PORT)) {
             while (true) {
                 try {
@@ -57,15 +57,12 @@ public class Server {
     private void clientRequestProcessing (String requestLine, BufferedOutputStream out) {
         try {
             var parts = requestLine.split(" ");
-
             if (correctRequestLength(parts)) {
                 final var path = parts[1];
-
                 if (correctPath(path)) {
                     final var filePath = Path.of(".", "public", path);
                     final var mimeType = Files.probeContentType(filePath);
                     writeFileToStream(path, filePath, mimeType, out);
-
                 } else {
                     out.write((NOT_FOUND_MESSAGE).getBytes());
                     }
@@ -116,6 +113,4 @@ public class Server {
             out.write(content);
         } catch (IOException e) {e.printStackTrace();}
     }
-
-
 }
