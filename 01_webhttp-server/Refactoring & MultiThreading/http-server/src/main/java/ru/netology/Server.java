@@ -46,9 +46,8 @@ public class Server {
     }
 
     private void processRequest(Socket socket) {
-        try {
-            final var in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
-            final var out = new BufferedOutputStream(socket.getOutputStream());
+        try (final var in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+             final var out = new BufferedOutputStream(socket.getOutputStream())) {
             final var requestLine = in.readLine();
             clientRequestProcessing(requestLine, out);
         } catch (IOException e) {e.printStackTrace();}
