@@ -3,6 +3,7 @@ package ru.netology;
 import java.io.*;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.nio.ByteBuffer;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.LocalDateTime;
@@ -12,6 +13,8 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 public class Server {
+
+    private Handler handler;
     private static final String BAD_REQUEST_MESSAGE =
             "HTTP/1.1 400 Bad Request\r\n" +
             "Content-Length: 0\r\n" +
@@ -31,6 +34,10 @@ public class Server {
     private final int PORT = 9999;
     private final ExecutorService threadPool = Executors.newFixedThreadPool(64);
 
+//    Server(Handler handler) {
+//        this.handler = handler;
+//    }
+
     public void start() {
         System.out.println("server started");
         try(var serverSocket = new ServerSocket(PORT)) {
@@ -49,6 +56,7 @@ public class Server {
         try (final var in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
              final var out = new BufferedOutputStream(socket.getOutputStream())) {
             final var requestLine = in.readLine();
+            Request request = new Request(in.readLine());
             clientRequestProcessing(requestLine, out);
         } catch (IOException e) {e.printStackTrace();}
     }
@@ -111,5 +119,8 @@ public class Server {
             ).getBytes());
             out.write(content);
         } catch (IOException e) {e.printStackTrace();}
+    }
+
+    public void addHandler(String get, String s, Handler handler) {
     }
 }
