@@ -17,6 +17,7 @@ public class Request {
     private final String url;
     private final Map<String, String> headers;
     private final String body;
+    private final String[] firstLine;
 
     public Request(String message) {
         this.message = message;
@@ -27,7 +28,7 @@ public class Request {
 
         String[] headers = head.split(NEW_LINE);
 
-        String[] firstLine = headers[0].split(" ");
+        firstLine = headers[0].split(" ");
 
         method = HttpMethods.valueOf(firstLine[0]);
 
@@ -69,8 +70,12 @@ public class Request {
         return body;
     }
 
+    public String[] getFirstLine() {
+        return firstLine;
+    }
+
     public Path getFilePath() {
-        return Path.of("." + "public" + getUrl());
+        return Path.of("public" + getUrl());
     }
 
     public String getMimeType() {

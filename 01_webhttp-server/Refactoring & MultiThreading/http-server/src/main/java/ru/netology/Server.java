@@ -3,18 +3,25 @@ package ru.netology;
 import java.io.*;
 import java.net.ServerSocket;
 import java.net.Socket;
-import java.nio.ByteBuffer;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 public class Server {
 
-    private Handler handler;
+    private final Map<String, Map<String,Handler>> handlers = new HashMap<>();
+    {
+        handlers.put("GET", new HashMap<>());
+        handlers.put("POST", new HashMap<>());
+    }
+
+    private static final int LIMIT = 4096;
     private static final String BAD_REQUEST_MESSAGE =
             "HTTP/1.1 400 Bad Request\r\n" +
             "Content-Length: 0\r\n" +
@@ -34,10 +41,6 @@ public class Server {
     private final int PORT = 9999;
     private final ExecutorService threadPool = Executors.newFixedThreadPool(64);
 
-//    Server(Handler handler) {
-//        this.handler = handler;
-//    }
-
     public void start() {
         System.out.println("server started");
         try(var serverSocket = new ServerSocket(PORT)) {
@@ -53,23 +56,30 @@ public class Server {
     }
 
     private void processRequest(Socket socket) {
-        try (final var in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+        try (final var in = new BufferedInputStream(socket.getInputStream());
              final var out = new BufferedOutputStream(socket.getOutputStream())) {
-            final var requestLine = in.readLine();
-            Request request = new Request(in.readLine());
-            clientRequestProcessing(requestLine, out);
+            in.mark(LIMIT);
+            final var buffer = new byte[LIMIT];
+            final int read = in.read(buffer);
+            final var requestMessage = new String(buffer, 0, read);
+            Request request = new Request(requestMessage);
+
+            Map<String, Handler> addresses = handlers.get(request.getMethod().toString());
+            if(addresses != null) {
+                Handler handler = addresses.get(request.getUrl());
+                if(handler != null) {
+                    handler.handle(request, out);
+                }
+            }
+//            clientRequestProcessing(request, out);
         } catch (IOException e) {e.printStackTrace();}
     }
 
-    private void clientRequestProcessing (String requestLine, BufferedOutputStream out) {
+    private void clientRequestProcessing (Request request, BufferedOutputStream out) {
         try {
-            var parts = requestLine.split(" ");
-            if (correctRequestLength(parts)) {
-                final var path = parts[1];
-                if (correctPath(path)) {
-                    final var filePath = Path.of(".", "public", path);
-                    final var mimeType = Files.probeContentType(filePath);
-                    writeFileToStream(path, filePath, mimeType, out);
+            if (correctRequestLength(request.getFirstLine())) {
+                if (correctPath(request.getUrl())) {
+                    writeFileToStream(request.getFilePath(), request.getMimeType(), out);
                 } else {
                     out.write((NOT_FOUND_MESSAGE).getBytes());
                     }
@@ -88,8 +98,8 @@ public class Server {
         return (validPaths.contains(path));
     }
 
-    private void writeFileToStream(String path, Path filePath, String mimeType, BufferedOutputStream out) {
-        if (path.equals("/classic.html")) writeFileClassicHTML(filePath, mimeType, out);
+    private void writeFileToStream(Path filePath, String mimeType, BufferedOutputStream out) {
+        if (filePath.toString().equals("public\\classic.html")) writeFileClassicHTML(filePath, mimeType, out);
         try {
             final var length = Files.size(filePath);
             out.write((
@@ -100,7 +110,9 @@ public class Server {
                             "\r\n"
             ).getBytes());
             Files.copy(filePath, out);
-        } catch (IOException e) { e.printStackTrace(); }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 
     private void writeFileClassicHTML(Path filePath, String mimeType, BufferedOutputStream out) {
@@ -121,6 +133,8 @@ public class Server {
         } catch (IOException e) {e.printStackTrace();}
     }
 
-    public void addHandler(String get, String s, Handler handler) {
+    public void addHandler(String requestType, String path, Handler handler) {
+        Map<String, Handler> addresses = handlers.get(requestType);
+        addresses.put(path, handler);
     }
 }
