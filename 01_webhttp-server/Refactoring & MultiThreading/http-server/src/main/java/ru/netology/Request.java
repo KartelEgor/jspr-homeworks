@@ -43,7 +43,7 @@ public class Request {
 
         url = firstLine[1];
 
-        //обрабатываем тело сообщения и сохраняем в мап
+        //Обрабатываем тело сообщения и сохраняем в мап
         this.headers = Collections.unmodifiableMap(
                 new HashMap<>() {{
                     for (int i = 1; i < headers.length; i++) {
@@ -58,7 +58,7 @@ public class Request {
         int length = bodyLength != null ? Integer.parseInt(bodyLength) : 0;
         this.body = parts.length > 1 ? parts[1].trim().substring(0, length) : " ";
 
-        //
+        //Определяем параметры в запросе
         try {
             this.queryParams = URLEncodedUtils.parse(new URI(url), Charset.forName("UTF-8"));
         } catch (URISyntaxException e) {throw new RuntimeException(e);}
