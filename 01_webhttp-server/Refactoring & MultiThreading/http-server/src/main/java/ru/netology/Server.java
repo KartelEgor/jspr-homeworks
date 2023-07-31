@@ -15,13 +15,8 @@ import java.util.concurrent.Executors;
 
 public class Server {
 
-    private final Map<String, Map<String,Handler>> handlers = new HashMap<>();
-    {
-        handlers.put("GET", new HashMap<>());
-        handlers.put("POST", new HashMap<>());
-    }
-
     private static final int LIMIT = 4096;
+
     private static final String BAD_REQUEST_MESSAGE =
             "HTTP/1.1 400 Bad Request\r\n" +
             "Content-Length: 0\r\n" +
@@ -39,6 +34,7 @@ public class Server {
             "/classic.html", "/events.html", "/events.js"));
 
     private final int PORT = 9999;
+
     private final ExecutorService threadPool = Executors.newFixedThreadPool(64);
 
     public void start() {
@@ -63,15 +59,7 @@ public class Server {
             final int read = in.read(buffer);
             final var requestMessage = new String(buffer, 0, read);
             Request request = new Request(requestMessage);
-
-            Map<String, Handler> addresses = handlers.get(request.getMethod().toString());
-            if(addresses != null) {
-                Handler handler = addresses.get(request.getUrl());
-                if(handler != null) {
-                    handler.handle(request, out);
-                }
-            }
-//            clientRequestProcessing(request, out);
+            clientRequestProcessing(request, out);
         } catch (IOException e) {e.printStackTrace();}
     }
 
@@ -131,10 +119,5 @@ public class Server {
             ).getBytes());
             out.write(content);
         } catch (IOException e) {e.printStackTrace();}
-    }
-
-    public void addHandler(String requestType, String path, Handler handler) {
-        Map<String, Handler> addresses = handlers.get(requestType);
-        addresses.put(path, handler);
     }
 }
