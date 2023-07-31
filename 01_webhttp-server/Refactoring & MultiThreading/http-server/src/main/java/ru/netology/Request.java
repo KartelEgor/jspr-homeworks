@@ -1,11 +1,19 @@
 package ru.netology;
 
+import org.apache.http.NameValuePair;
+import org.apache.http.client.utils.URLEncodedUtils;
+
 import java.io.IOException;
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 public class Request {
 
@@ -16,6 +24,7 @@ public class Request {
     private HttpMethods method;
     private final String url;
     private final Map<String, String> headers;
+    private final List<NameValuePair> queryParams;
     private final String body;
     private final String[] firstLine;
 
@@ -48,6 +57,11 @@ public class Request {
         String bodyLength = this.headers.get("Content-Length");
         int length = bodyLength != null ? Integer.parseInt(bodyLength) : 0;
         this.body = parts.length > 1 ? parts[1].trim().substring(0, length) : " ";
+
+        //
+        try {
+            this.queryParams = URLEncodedUtils.parse(new URI(url), Charset.forName("UTF-8"));
+        } catch (URISyntaxException e) {throw new RuntimeException(e);}
     }
 
     public String getMessage() {
@@ -84,5 +98,16 @@ public class Request {
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
+    }
+
+    public List<NameValuePair> getParams() {
+        return queryParams;
+    }
+
+    public List<NameValuePair> getQueryParam(String name) {
+        return queryParams
+                .stream()
+                .filter(n -> n.getName().contains(name))
+                .collect(Collectors.toList());
     }
 }
